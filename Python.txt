@@ -21,6 +21,7 @@ x = b'ABC'
 如果bytes中包含无法解码的字节，decode()方法会报错：
 
 >>> b'\xe4\xb8\xad\xff'.decode('utf-8')
+
 Traceback (most recent call last):
   ...
 
@@ -28,3 +29,11 @@ Traceback (most recent call last):
 
 >>> b'\xe4\xb8\xad\xff'.decode('utf-8', errors='ignore')
 '中'
+
+我们经常会输出类似'亲爱的xxx你好！你xx月的话费是xx，余额是xx'之类的字符串
+而xxx的内容都是根据变量变化的，所以，需要一种简便的格式化字符串的方式。
+
+>>> 'hello, %s' %' world'
+hello world
+
+>>>'hi, %s, you have $ %d' % ('yu juan , 100000)
