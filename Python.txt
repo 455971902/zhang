@@ -1,3 +1,26 @@
 对于单个字节的编码
 
-ord（‘ A ’）：  表式为65的整数
+ord（‘ A ’）：  表示为65的整数
+
+chr ( '65 '):   表示字符转化为'A'
+
+python 对bytes类型的数据用带b的前缀的单引号或者是双引号表示：
+
+x = b'ABC'
+python 对bytes类型的数据用带b的前缀的单引号或者是双引号表示：
+
+x = b'ABC'
+
+在bytes中无法显示为ASCII字符的字节，用\x##显示
+
+在将bytes数据变为str 就需要用decode
+
+>>> b'ABC'.decode('ascii')
+'ABC'
+
+如果bytes中包含无法解码的字节，decode()方法会报错：
+
+>>> b'\xe4\xb8\xad\xff'.decode('utf-8')
+Traceback (most recent call last):
+  ...
+UnicodeDecodeError: 'utf-8' codec can't decode byte 0xff in position 3: invalid start byte
