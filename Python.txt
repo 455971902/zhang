@@ -45,3 +45,55 @@ format()
 
 >>> 'Hello, {0}, 成绩提升了 {1:.1f}%'.format('小明', 17.125)
 'Hello, 小明, 成绩提升了 17.1%'
+
+Python 内置数据类型：list 
+>>> classmates = ['zhangxu', 'Bob', 'yujuan']
+>>>len(classmates)
+3
+
+用索引可以直接访问list中的每一个元素 索引是从0开始的：
+>>> classmates[0]
+zhangxu
+
+>>> classmates[-1]  （从最后一个开始，一次类推可以获取倒数 2、3、4）
+yujuan
+
+list 是一个可变的有序表，可以向list中追加元素到末尾
+>>> classmates.append ('Adam')
+>>>classmates
+['zhangxu', 'jack', 'yujuan', 'Adam']
+
+要删除指定位置的元素用POP(i)的方法，其中i是索引的位置
+>>> classmates.pop(1)
+'jack'
+>>>classmates
+['zhangxu','yujuan']
+
+要把某个元素替换成别的元素可以直接复制给对应的索引位置：
+classmates【3】
+
+list元素也可以是另一个list 
+另一种有序序列列表叫元组， tuple ：：tuple和list非常相似，但是tuple一旦初始化后不能修改
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

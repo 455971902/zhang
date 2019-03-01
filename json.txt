@@ -1,0 +1,19 @@
+2019/3/1
+
+
+	json  
+	[{
+	   'key' :  'value'  ,  'key' : 'value' (两个值之间用逗号隔开)
+	
+	}]
+	
+	
+	value包含：
+				string
+				number
+				object
+				array
+				true
+				false
+				null
+				
