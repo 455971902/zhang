@@ -1,0 +1,215 @@
+
+
+
+#include "adc12.h"
+
+#include "MSP430x54x.h"
+
+#include "kernel.h"
+#include "lcd.h"
+
+
+
+//__no_init unsigned int adcBuf1[BUF_NUM];
+//__no_init unsigned int adcBuf2[BUF_NUM];
+
+__no_init struct SMPDATA smpData[BUF_NUM];    //采样数据链表数据
+
+
+static struct SMPDATA *curDataPoint;    //指向链表的指针
+
+static unsigned char adcSmpFlag = 1;    //表示启用AD采样
+
+static unsigned long Presure = 0;
+
+static unsigned long pumpI = 0;     //电机电流值
+
+static int covCount = 0;     //转换计数
+
+static unsigned int batV = 0;    //电池电压值
+
+
+void initBuf(void)
+{
+    int i;
+    
+    for(i = 0;i < BUF_NUM; i++)
+    {
+        //adcBuf1[i] = 0;
+        //adcBuf2[i] = 0;
+        
+        smpData[i].pData = 0;     //原始数据初始化为0
+        smpData[i].iData = 0;     //初始化电流采样值缓冲区
+        
+        if(i < BUF_NUM-1)
+        {
+            smpData[i].next = &smpData[i+1];    //连接到上一个指针
+        }else
+        {
+            smpData[i].next = &smpData[0];     //形成循环链表
+        }
+    }
+    curDataPoint = &smpData[0];
+    //nextDataPoint = &smpData[0];
+}
+
+
+void initAdc(void)   // 初始化AD采样函数
+{
+    ADC12CTL0 |= ADC12MSC +  //队列采样出发模式 
+                 ADC12ON + ADC12REFON;    //AD核心开启
+    
+    ADC12CTL1 |= ADC12SHP +      //使用触发采样时钟模式采样
+                 ADC12SSEL_1 +   //使用ACLK作为AD核心时钟
+                 ADC12CONSEQ_1;  //使用单次队列模式采样
+    
+    
+    ADC12MCTL0 |= ADC12INCH_1;  //通道1
+    
+    ADC12MCTL1 |= ADC12INCH_2;  //通道2
+    
+    ADC12MCTL2 |= ADC12INCH_3;  //通道3
+    
+    ADC12MCTL3 |= ADC12INCH_4 + //通道4
+                  ADC12EOS;     //设置为最后一个采样的通道
+    
+    P6OUT |= 0;
+    P6SEL |= 0x1E;      //使P6.1-P6.4为AD模式输入口
+    
+    
+}
+
+
+
+unsigned long getPAdc(void)     //获得压力采样值,未经过小数运算
+{
+    unsigned long re = 0;
+    
+    cli();     //关中断
+    
+    re = Presure;     //获得压力采样值
+    
+    sti();     //开中断
+    
+    return re;
+    
+}
+
+
+unsigned long getIAdc(void)   //获得电流采样值，多个值的总和，未经小数运算
+{
+    unsigned long re = 0;
+    
+    cli();    //关中断
+    
+    re = pumpI;   //获得电流采样值
+    
+    sti();   //开中断
+    
+    return re;
+}
+
+
+
+int getBatLevel(void)  //获得电池电量级别
+{
+    int re = 0;
+    
+    if(batV > 3800)
+    {
+        re = 4;
+        
+    }else if(batV > 3680)
+    {
+        re = 3;
+    }else if(batV > 3544)
+    {
+        re = 2;
+    }else if(batV > 3470)
+    {
+        re = 1;
+    }else 
+    {
+        re = 0;
+    }
+    
+    return re;
+}
+
+
+
+void adcTask(void)    //adc采样任务
+{
+    unsigned int adResult[4] = {0,0,0,0};
+    
+    long timeOut = 0;
+    
+    initBuf();    //初始化采样数据缓冲区
+    initAdc();    //初始化ADC模块
+    
+    while(1)
+    {
+        if(adcSmpFlag)  //AD采样是否启用
+        {
+            startAdc();    //启动AD采样
+            
+            timeOut = 0;
+            
+            while(!checkCmpled() && timeOut < 500000) //如果超时，则同样退出本循环
+            {                                         //以防止程序在此占用CPU
+                timeOut ++;
+            }
+            
+            if(timeOut < 100)   //如果采样时间正常，则保存采样数据
+            {
+                adResult[0] = ADC12MEM0;
+                adResult[1] = ADC12MEM1;
+                adResult[2] = ADC12MEM2;
+                adResult[3] = ADC12MEM3;
+                
+                
+                cli();      //关中断
+                
+                batV = adResult[0];    //电池电压采样值
+                
+                if(covCount < BUF_NUM)
+                {
+                    Presure += adResult[2];     //对总值进行计数
+                    
+                    curDataPoint->pData = adResult[2];   //记录值
+                    
+                                       
+                    pumpI += adResult[1];       //对电流总值进行计数
+                    
+                    curDataPoint->iData = adResult[1];  //记录当前电流值
+                    
+                    
+                    curDataPoint = curDataPoint->next; //转移到下一个数据
+                    
+                    covCount ++;   //计数
+                }else
+                {
+                    
+                    Presure += adResult[2];   //总值加上采样数据
+                    
+                    Presure -= curDataPoint->pData;  //减去最早进入缓冲区的数据
+                    
+                    curDataPoint->pData = adResult[2]; //空槽里放进新的数据
+                    
+                    
+                    pumpI += adResult[1];
+                    pumpI -= curDataPoint->iData;
+                    curDataPoint->iData = adResult[1];    
+                    
+                    curDataPoint = curDataPoint->next; //指向下一个数据项
+                }
+                
+                sti();    //开中断
+            }else         //如果此项出错，则必须弹窗警示
+            {
+                //代码需在后续添加
+            }
+        }  
+        sleep_delay();
+    }
+}

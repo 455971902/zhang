@@ -1,0 +1,7 @@
+#ifndef _TEST_H
+#define _TEST_H
+
+void check(void);
+void power_off(void);
+
+#endif

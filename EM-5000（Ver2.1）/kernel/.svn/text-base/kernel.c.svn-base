@@ -1,0 +1,80 @@
+
+
+#include "kernel.h"
+
+#include "taskqueue.h"
+#include "clock.h"
+
+#include "task.h"
+#include "port.h"
+
+volatile unsigned char intCount = 0;
+
+
+
+extern void idel(void)     //没有其它任务的时候执行此函数
+{
+    while(1)
+    {
+        powerSave();    //进入低功耗模式
+    }
+}
+
+
+extern void initSys(void)      //初始化系统函数
+{
+    int i = 0;
+    
+    for(i=0;i<64;i++)
+    {
+        priorTask[i] = 0;
+    }
+    
+    createTask(idel,64,63,0);
+}
+
+
+
+
+extern void  createTask(void (*task)(),int stackSize,char prior,int delayTime)     //创建任务函数
+{
+    struct TSKPCB *taskPcb = 0;
+    
+    
+    taskPcb =(struct TSKPCB*)createXTask(task,stackSize,prior,delayTime);
+    
+    if(prior < 64)
+    {
+        priorTask[prior] = taskPcb;
+    }
+}
+
+
+
+
+
+void startSys(void)   //启动系统函数
+{
+    
+    start((struct TSKPCB*)curTask);   //启动任务,不同的硬件请编写不同的start函数
+}
+
+
+void runIntIsr(void (*intIsrFun)(void))         //执行中断处理程序函数
+{
+    if(intCount == 0)
+    {
+        intCount ++;      //中断嵌套自加1
+        intIsrPort((void (*)(void))intIsrFun,(unsigned char*)&intCount);     //无中断嵌套，则执行保存上下文的操作
+        
+    }else if(intCount < 254)
+    {
+        intCount ++;
+        
+        sti();         //允许中断
+        intIsrFun();   //调用用户中断处理函数
+        cli();         //关中断
+        
+        intCount --;
+    }
+}

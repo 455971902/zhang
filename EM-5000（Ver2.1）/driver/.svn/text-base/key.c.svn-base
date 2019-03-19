@@ -1,0 +1,222 @@
+
+
+#include "key.h"
+#include "semaphore.h"
+#include "clock.h"
+#include "task.h"
+#include "kernel.h"
+#include "MSP430x54x.h"
+
+
+#define BUFSIZE 4
+
+static volatile SEMA keySemaphore;
+
+static struct TSKPCB *kWaitList = 0;    //等待键盘队列头
+
+static char keyBuf[BUFSIZE];
+
+static char index = 0;
+
+void initKey(void)
+{
+    
+    P2DIR = 0x00;
+    
+    initSema((SEMA*)&keySemaphore,1);
+}
+
+
+void initLcdBG(void)
+{
+    P9DIR = 0x01; 
+    
+    P9OUT |= 0x01;
+}
+
+
+
+void scanKey(void)     //读取键值函数
+{   
+    unsigned long i = 0;
+    
+    static char keyVal = 0;
+    
+    static char key = 0;
+    
+    static char P2INS = 0;
+    
+    char oldKey = 0;
+    
+    int lcdDelay = 0;
+    
+    initKey();
+    
+    initLcdBG();   //启动背光灯
+    
+    
+    for(i=0;i<BUFSIZE;i++)
+    {
+        keyBuf[i] = 0;
+    }
+    
+    i = 0;
+    
+    while(1)
+    {
+    
+       P2INS = P2IN;
+       
+       P2INS ^= BIT6;
+        
+       keyVal = P2INS & 0x7e;
+    
+       keyVal |= 0x81;
+       
+       keyVal = ~keyVal;
+       
+       key = keyVal;  //获得键值
+       i = 0;
+       
+       
+       while(key)
+       {
+           
+           lcdDelay = 0;
+           
+           if(!(P9OUT & 0x01))
+           {
+               keyVal = 0;
+               P9OUT |= 0x01;
+               sleepMs(200);
+               break;
+           }
+           
+           if(i<1)
+           {
+               sleepMs(60);   //任务休眠30ms
+           }else
+           {
+               sleepMs(30);
+           }
+           
+           i++;
+           
+           if(i>20)
+           {
+               if(keyVal & CENTERKEY)
+               {
+                   if(i > 100)
+                   {
+                       keyVal = LENTERKEY;
+                       
+                       break;
+                   }
+                   
+               }else if(keyVal & CANCELKEY)
+               {
+                   if(i > 80)
+                   {
+                       keyVal = KEY_POWER;
+                       break;
+                   }
+               }else if(!(key & CENTERKEY))
+               {
+                   
+                   break;
+               }
+           }
+           
+           if(oldKey == LENTERKEY)
+           {
+                 keyVal = 0;
+           }
+           
+           if(oldKey == keyVal && oldKey != CENTERKEY )
+           {
+               break;
+           }
+           
+           P2INS = P2IN;
+           
+           P2INS ^= BIT6;
+           
+           key = ~((P2INS&0x7e)|0x81);
+       }
+       
+       if(i > 20 && i< 100 && keyVal == CENTERKEY)
+       {
+           keyVal = 0;
+       }
+       
+       oldKey = keyVal;
+
+       if(keyVal != 0)
+       {
+           downSema((SEMA*)&keySemaphore);    //获得信号量 ，进入临街区
+               
+           if(index < BUFSIZE-2)
+           {
+                 index ++;
+                 keyBuf[index -1] = keyVal;
+           }
+               
+            upSema((SEMA*)&keySemaphore);      //释放信号量，退出临界区
+               
+            cli();
+               
+            wakeUp(&kWaitList);
+               
+            sti();
+               
+       }
+       
+       if(lcdDelay < 350)  //对背光灯点亮时间进行计数
+       {
+           lcdDelay ++;
+       }else
+       {
+           P9OUT &= ~0x01;
+       }
+       
+       sleep_delay();
+    }        
+}
+
+
+
+
+char getKey(void)
+{
+    char key = 0;
+    
+    int offset = 0;
+    
+    downSema((SEMA*)&keySemaphore);    //获得信号量 ，进入临街区
+               
+               
+    if(index>0)
+    {
+        key = keyBuf[0];
+        
+        for(offset=0;offset<index;offset++)
+        {
+            keyBuf[offset] = keyBuf[offset+1];
+            keyBuf[index] = 0;
+        }
+        
+        index --;
+    }
+               
+    upSema((SEMA*)&keySemaphore);      //释放信号量，退出临界区
+    return key;
+
+}
+
+
+#pragma vector = PORT2_VECTOR
+
+__interrupt void port2Isr(void)
+{
+    
+}

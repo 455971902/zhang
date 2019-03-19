@@ -1,0 +1,60 @@
+
+
+#ifndef _PORT_H_
+#define _PORT_H_
+
+
+/*
+函数名：osStartxxxPort
+
+功能：调用本函数，将启动启动运行
+
+注意： 系统启动函数prototype，其中SmallPort表示使用的是__DATA_MODEL_SMALL__数据类型
+    MediumPort表示使用的是__DATA_MODEL_MEDIUM__数据类型，LargePort表示是
+    __DATA_MODEL_LARGE__类型
+
+    osStartSmallPort     ---------------------------     __DATA_MODEL_SMALL__
+    osStartMediumPort    ---------------------------     __DATA_MODEL_MEDIUM__
+    osStartLargePort     ---------------------------     __DATA_MODEL_LARGE__
+    
+*/
+
+extern void osStartSmallPort(struct TSKPCB* task);
+extern void osStartMediumPort(struct TSKPCB* task);
+extern void osStartLargePort(struct TSKPCB* task);
+
+
+
+
+/*
+函数名：swCtxxxxPort
+
+功能：调用本函数，将进行任务调度操作，如果有新的更高优先级的任务就绪，则进行任务切换
+注意： 系统启动函数prototype，其中SmallPort表示使用的是__DATA_MODEL_SMALL__数据类型
+    MediumPort表示使用的是__DATA_MODEL_MEDIUM__数据类型，LargePort表示是
+    __DATA_MODEL_LARGE__类型
+
+    osStartSmallPort     ---------------------------     __DATA_MODEL_SMALL__
+    osStartMediumPort    ---------------------------     __DATA_MODEL_MEDIUM__
+    osStartLargePort     ---------------------------     __DATA_MODEL_LARGE__
+*/
+extern void swCtxSmallPort(void);
+extern void swCtxMediumPort(void);
+extern void swCtxLargePort(void);
+
+
+/*
+函数名：intIsrxxxPort
+ 功能：发生第一次中断时，需要进行任务的上下文保存操作，同时调用用户的ISR函数
+       调用完成，当调用完成无中断嵌套时，则恢复上下文
+*/
+extern void intIsrSmallPort(void (*intIsrFun)(void),unsigned char *intCount);
+extern void intIsrSmallPort(void (*intIsrFun)(void),unsigned char *intCount);
+extern void intIsrSmallPort(void (*intIsrFun)(void),unsigned char *intCount);
+
+
+
+
+
+
+#endif

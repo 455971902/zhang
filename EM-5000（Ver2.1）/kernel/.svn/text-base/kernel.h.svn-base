@@ -1,0 +1,29 @@
+
+#ifndef _KERNEL_H_
+
+#define _KERNEL_H_
+
+#include "task.h"
+
+
+
+extern volatile unsigned char intCount;
+
+
+extern void idel(void);
+
+
+extern void initSys(void);     //初始化系统函数
+
+
+extern void  createTask(void (*task)(),int stackSize,char prior,int delayTime);    //创建任务函数
+
+
+void startSys(void);   //启动系统函数
+
+void runIntIsr(void (*intIsrFun)(void));        //执行中断处理程序函数
+
+
+
+
+#endif

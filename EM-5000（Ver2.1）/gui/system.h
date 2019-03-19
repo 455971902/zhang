@@ -1,0 +1,192 @@
+
+
+
+#ifndef _SYSTEM_H_
+
+#define _SYSTEM_H_
+
+////////////////////////以下常量表示工作状态///////////////////////////////
+                                                                         //
+#define  WORKING  1        //工作状态，表示正在工作                      //
+#define  PAUSES    2        //工作状态，表示暂停                          //
+#define  STOP     0        //工作状态，表示工作停止                      //
+                                                                         //
+///////////////////////////////////////////////////////////////////////////
+
+
+//////////////////以下常量用于设置通道/////////////////////////////////////
+                                                                         //
+#define CH1   0x0001       //通道1                                       //
+#define CH2   0x0002       //通道2                                       //
+#define CH3   0x0004       //通道3                                       //
+#define CH4   0x0008       //通道4                                       //
+#define CH5   0x0010       //通道5                                       //
+#define CH6   0x0020       //通道6                                       //
+#define CH7   0x0040       //通道7                                       // 
+#define CH8   0x0080       //通道8                                       //   
+#define CH9   0x0100       //通道9                                       //
+#define CH10  0x0200       //通道10                                      //
+#define CH11  0x0400       //通道11                                      //  
+#define CH12  0x0800       //通道12                                      //
+#define CH13  0x1000       //通道13                                      //
+#define CH14  0x2000       //通道14                                      //
+#define CH15  0x4000       //通道15                                      //
+#define CH16  0x8000       //通道16                                      //
+                                                                         //
+///////////////////////////////////////////////////////////////////////////
+
+/////////////////////以下常量表示工作组的数量//////////////////////////////
+                                                                         //
+#define GROUP_NUM   10    //表示工作组的数量                             //
+                                                                         //
+///////////////////////////////////////////////////////////////////////////
+
+///////////////////////////以下常量表示显示的语言//////////////////////////
+                                                                         //
+#define CHINESE    1         //中文                                      //
+#define ENGLISH    0         //英文                                      //
+                                                                         //
+///////////////////////////////////////////////////////////////////////////
+
+
+/////////////////////////以下常量表示电池级别//////////////////////////////
+                                                                         //
+#define LEVEL0    0              //0级电量                               //
+#define LEVEL1    1              //1级电量                               //
+#define LEVEL2    2              //2级电量                               //
+#define LEVEL3    3              //3级电量                               //
+#define LEVEL4    4              //4级电量                               //
+                                                                         //
+///////////////////////////////////////////////////////////////////////////
+
+
+////////////////////////以下表示工作模式常量///////////////////////////////
+                                                                         //
+#define DELAY_MOD       0              //手动模式                        //
+#define SINGLE_MOD      1              //自动模式                        //
+                                                                         //
+                                                                         //
+///////////////////////////////////////////////////////////////////////////
+
+
+typedef struct times
+{
+  unsigned char year;        //年
+  unsigned char month;       //月  
+  unsigned char date;        //日
+  unsigned char hour;        //时
+  unsigned char min;         //分
+  unsigned char sec;         //秒
+}TIME,LpTIME;
+
+
+
+typedef struct      bat          //电池结构体
+{
+  unsigned char level;            //电池电量
+  unsigned char level_old;        //电池电量副本
+  double vol;                //电池电压值
+  double vol_old;            //电池电压副本
+  unsigned char change;           //电池级别变化标志，1有变化，0无变化
+  unsigned char charge;           //充电标志，1:充电，0:不充电
+  unsigned char x_pos_icn;        //电池图标的x坐标，从图标的左上角算
+  unsigned char y_pos_icn;        //电池图标的y坐标，从图标的左上角算
+  const unsigned char* icn;            //电池图标的数据指针    
+}BATTERY,*LpBATTERY;
+
+
+
+typedef struct systems    //系统结构体
+{
+  TIME  sys_time;               //系统时间
+  BATTERY  battery;             //电池
+  unsigned char mod;            //工作模式
+  unsigned char status;         //工作状态
+  unsigned char lag;            //语言，0为中文，1为英文
+ 
+  //CHANNEL single[8];            //单通道采样的8个通道
+ // CHANNEL delays[4];            //短时采样的4个通道
+
+  
+  unsigned long clk1;            //软时钟中断1
+  unsigned long clk2;           //软时钟中断2
+  unsigned long clk3;           //软时钟中断3
+  
+  void (*set_battery)(unsigned int);   //电池设置函数指针，参数为通过AD采样
+                                       //得到的12位整数,调用此函数后可得电池
+                                       //电池电量级别
+  
+  void (*bat_display)(int mod);        //电量显示函数
+  
+  void (*set_time)(unsigned long);     //通过读取时间芯片获得当前时间值函数指针
+  
+  void (*dis_time)(int mod);           //时间显示函数
+  
+  unsigned char temp_year;  
+  unsigned char temp_month;
+  unsigned char temp_day;
+  unsigned char temp_hour;              //用于更新时间的"时"临时缓存
+  unsigned char temp_min;               //用于更新时间的"分"临时缓存
+  unsigned char temp_sec;               //用于更新时间的"秒"的临时变量
+  
+  unsigned int a_hour;                 //用于调整时间参数用的"时长"临时缓存
+  unsigned int a_min;					//0~59
+  unsigned int a_sec; 
+  
+  unsigned int a_flow;                 //用于调整流量时的临时变量
+  int a_temp;						   //用于临时调整温度的变量
+  unsigned char	set_temp_flag;		  //用于观察温度是否设定	
+  
+}SYSTEM;
+
+
+////////////////////////////////////////////////////////////////////////////////
+typedef struct interrupt               //中断结构体                           //
+{                                                                             //
+  //unsigned int ID;            //中断ID号                                      //
+  //unsigned int IE;            //中断允许标志                                  //
+  unsigned int IFG;           //中断标志寄存器内容                            // 
+  unsigned int data1;         //中断后返回的数据1,(比如ADC12中断会有采样数据) //
+  //unsigned int data2;         //中断后返回的数据2                             //
+  //unsigned int sub_ID;        //子中断号                                      //
+  void (*proc_fun)();         //中断处理的函数                                //
+}INTERRUPT;  //中断结构体                                                     //
+                                                                              //
+//    中断结构体主要是为了中断处理处理程序快速返回，而真正的中断处理由外部    //
+// 的proc_fun()函数进行处理，这样就能快速的相应中断                           //
+////////////////////////////////////////////////////////////////////////////////
+
+
+SYSTEM* new_system(void);               //创建系统函数，函数将返回一个SYSTEM指针
+
+void set_battery(unsigned int ADCMEM);   //设置电池电量函数
+
+void bat_display(int mod);                 //电量显示函数
+
+void set_time(unsigned long time);           //设置时间函数
+
+void dis_time(int mod);                    //显示时间函数
+
+////////////////////////////////////////////////////////////////////////////////
+
+static const unsigned char battery_icn[90]=
+{
+ 0x00,0xFF,0x81,0x81,0x81,0x81,0x81,0x81,    
+ 0x81,0x81,0x81,0x81,0x81,0x81,0x81,0xFF,    
+ 0x42,0x7E,
+ 0x00,0xFF,0x81,0xBD,0xBD,0x81,0x81,0x81,    
+ 0x81,0x81,0x81,0x81,0x81,0x81,0x81,0xFF,    
+ 0x42,0x7E,
+ 0x00,0xFF,0x81,0xBD,0xBD,0x81,0xBD,0xBD,
+ 0x81,0x81,0x81,0x81,0x81,0x81,0x81,0xFF,
+ 0x42,0x7E,
+ 0x00,0xFF,0x81,0xBD,0xBD,0x81,0xBD,0xBD,    
+ 0x81,0xBD,0xBD,0x81,0x81,0x81,0x81,0xFF,
+ 0x42,0x7E,
+ 0x00,0xFF,0x81,0xBD,0xBD,0x81,0xBD,0xBD,   
+ 0x81,0xBD,0xBD,0x81,0xBD,0xBD,0x81,0xFF,  
+ 0x42,0x7E
+};
+
+
+#endif

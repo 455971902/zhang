@@ -1,0 +1,4 @@
+---- check Matches (3 in 3 files) ----
+Display.c (e:\孙国栋\小个体项目移交\第三版软件（最新）（新版硬件）\1500_ver_3\gui):    check();          //执行自检操作
+Test.c (e:\孙国栋\小个体项目移交\第三版软件（最新）（新版硬件）\1500_ver_3\gui):void check(void)
+Test.h (e:\孙国栋\小个体项目移交\第三版软件（最新）（新版硬件）\1500_ver_3\gui):void check(void);

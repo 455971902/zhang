@@ -1,0 +1,80 @@
+
+#include "MSP430x54x.h"
+
+#include "kernel.h"
+#include "task.h"
+#include "clock.h"
+#include "chip.h"
+#include "lcd.h"
+#include "key.h"
+#include "display.h"
+#include "pump.h"
+#include "adc12.h"
+#include "flash.h"
+
+
+void guiTask(void);
+
+
+int main( void )
+{ 
+  // Stop wa tchdog timer to prevent time out reset
+  WDTCTL = WDTPW + WDTHOLD;
+
+   
+  init_Ucs();    
+  //初始化UCS模块，也即开启XT1,XT2，并复位时钟失效标志
+  
+  UCSCTL4|=SELA__XT1CLK;             //使ACLK为XT1
+  
+  UCSCTL3|=SELREF__XT1CLK;           //使PLL的参考时钟为XT1
+ 
+  UCSCTL4|=SELM__XT2CLK;             //选择XT2CLK为MCLK             
+  UCSCTL4|=SELS__XT2CLK;
+  
+  
+  Init_time_io();
+  
+  init_Lcd();
+  
+  initSys();   //初始化系统
+
+ 
+  initClock(); //初始化系统定时器
+  
+  createTask(calcuTask,512,4,100);
+  createTask(pumpLoop,512,1,100);
+  createTask(adcTask,256,0,2);
+  createTask(guiTask,4096,3,100);
+  createTask(scanKey,256,2,100);
+  
+  startSys();    //启动系统
+  
+}
+
+
+void guiTask(void)
+{
+    struct GUI *gui;
+    
+    WDTCTL = WDT_ARST_250;    //开看门狗
+    
+    powerOn();                //目前暂为空函数.开机函数
+
+    gui = newGui();           //新建一个界面
+    
+    while(1)
+    {   
+        gui->guiExec();            //执行GUI线程
+        
+        WDTCTL = WDTPW + WDTCNTCL;  //喂狗
+         
+        P6OUT ^= BIT0;             //外看门狗
+         
+        sleep_delay();              //执行完一次，休眠
+    }
+}
+
+
+
+

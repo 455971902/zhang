@@ -1,0 +1,111 @@
+
+
+#ifndef _TASK_H_
+
+
+#define _TASK_H_
+
+#include "MSP430x54x.h"
+
+
+#if      __DATA_MODEL__ == __DATA_MODEL_SMALL__
+    
+#define    start(x)                     osStartSmallPort(x)
+#define    intIsrPort(x,y)              intIsrSmallPort(x,y)
+#define    swContexPort()               swCtxSmallPort()
+
+#elif    __DATA_MODEL__ == __DATA_MODEL_MEDIUM__
+
+#error   "DATA MODEL MEDIUM is not supported ! Please check your configration."
+
+#elif    __DATA_MODEL__ == __DATA_MODEL_LARGE__
+    
+#define    start(x)                     osStartLargePort(x)
+#define    intIsrPort(x,y)              intIsrLargePort(x,y)
+#define    swContexPort()               swCtxLargePort()
+        
+#endif
+
+
+#define  cli()  _DINT()
+#define  sti()  _EINT()
+
+
+///任务状态宏
+#define     TSKRDY     0
+#define     TSKWAIT    1
+#define     TSKBLOCK   2  
+#define     TSKSLEEP   3
+
+
+
+
+struct  TSKPCB 
+{
+    char *sp;    //任务的堆栈指针
+    
+    void (*task)(void);   //任务句柄指针
+    
+    int delayTime;    //任务运行的时间间隔,如果delayTime==0，则只要任务获得
+                       //运行的机会就会运行，如果delayTime大于0，则每隔delayTime
+                       //时间运行一次。
+    
+    int uTime;        //任务从运行到某个时刻已经过的时间，
+                       //如果uTime == delayTime，则uTime将保持不变,
+                       //直到任务再次运行。
+    
+    unsigned long sleepTime;    //任务休眠时间,用于程序延时用，暂用此项
+    
+    
+    char priority;     //任务的优先级，只要优先级小的任务处于就绪状态则将获得
+                       //运行机会
+    
+    char state;        //任务的状态，有TSKRDY就绪，TSKWAIT等待时钟，,TSKBLOCK等待
+                       //外设中断或软件中断唤醒任务
+    
+    struct TSKPCB *nextBlock;     //连接到等一队列阻塞的任务
+};
+
+
+extern volatile struct TSKPCB *priorTask[64];    //按优先级排列的任务队列数组 
+
+
+extern volatile struct TSKPCB *curTask;    //当前任务
+
+
+extern volatile unsigned long jiff;
+
+
+
+void initXTask(struct TSKPCB *task);   //任务初始化函数，在汇编文件里实现
+
+/*
+void start(struct TSKPCB *task);       //启动任务函数，在汇编文件里实现
+
+void intIsrPort(void (*intIsrFun)(void),unsigned char *intCount);
+
+void swContexPort(void);
+*/
+
+struct TSKPCB*  createXTask(void (*task)(),int stackSize,char prior,int delayTime);    //创建任务函数
+
+volatile void schdule(void);      //任务调度函数
+
+//volatile void cli(void);     //禁止中断函数
+
+//volatile void sti(void);     //允许中断函数
+
+extern void powerSave(void);      //进入低功耗模式函数
+
+
+void sleep_delay(void);       //睡眠函数
+
+void sleepMs(unsigned long ms);  //休眠毫秒函数
+
+void sleep(struct TSKPCB **taskList);       //驱动程序的睡眠函数
+
+void intWakeUp(struct TSKPCB **task);  //驱动程序中的唤醒函数,仅可在中断处理程序里使用
+
+void wakeUp(struct TSKPCB **taskList);
+
+#endif

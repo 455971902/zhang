@@ -1,0 +1,139 @@
+
+
+         EXTERN  curTskTcbPtr
+         EXTERN  higPriTskTcbPtr 
+         
+         EXTERN  getHighPriorTsk
+
+         EXTERN  isrStrPtr
+
+         PUBLIC  swCtx
+         PUBLIC  runIsrPort
+         PUBLIC  startCurTask
+         
+         PUBLIC  ctxSave
+         PUBLIC  ctxRestore
+         
+         PUBLIC  setSR
+         PUBLIC  getSR
+
+         RSEG  CODE
+         
+swCtx   
+         PUSHX.A SR
+         PUSHM.A #12,R15             //12个寄存器出栈
+         
+         MOVX.A curTskTcbPtr,R10    //当前任务指针
+         MOVX.A SP,0(R10)            //将堆栈值保存
+         
+         MOVX.A higPriTskTcbPtr,R10
+         MOVX.A 0(R10),SP
+         MOVX.A R10,curTskTcbPtr
+         POPM.A #12,R15
+         POPX.A SR
+         NOP
+         RETA
+         
+         
+ctxSave
+         MOVX.A  0(SP),-52(SP)
+         ADDX.A  #4,SP
+         PUSHX.A SR
+         PUSHM.A #12,R15
+         MOVX.A  R15,-8(SP)
+         MOVX.A  curTskTcbPtr,R15
+         MOVX.A  SP,0(R15)
+         MOVX.A  -8(SP),R15
+         SUBX.A  #4,SP
+         RETA
+         
+         
+ctxRestore
+         MOVX.A  curTskTcbPtr,R13
+         MOVX.A  0(R13),SP
+         POPM.A  #12,R15
+         POPX.A  SR
+         RETA
+         
+         
+
+runIsrPort
+         PUSHX.A SR
+         PUSHM.A #12,R15
+         
+         MOVX.A curTskTcbPtr,R10
+         MOVX.A SP,0(R10)
+         
+         MOVX.A isrStrPtr,SP
+         
+         PUSHX.A R15
+         PUSHX.A R13
+         
+         MOVX.A  R12,R15
+         MOVX.A  R14,R12      
+         
+         EINT             //开中断
+         NOP
+        
+         CALLA   R15
+         
+         DINT             //关中断
+         NOP
+         
+         POPX.A R13
+         POPX.A R15
+         
+         DECX.W 0(R13)
+         
+         CALLA  R15
+         
+         MOVX.A R12,curTskTcbPtr
+         MOVX.A 0(R12),SP 
+         POPM.A #12,R15
+         POPX.A SR
+         NOP
+         RETA
+         
+         
+startCurTask
+         MOVX.A curTskTcbPtr,R12
+         MOVX.A 0(R12),SP
+         POPM.A #12,R15
+         POPX.A SR
+         NOP
+         RETA
+         
+         
+         PUBLIC tskCli
+         RSEG CODE
+tskCli          
+         SUBX.A #8,SP
+         MOVX.A 8(SP),4(SP)
+         MOVX.A SR,8(SP)
+         ADDX.A #4,SP
+         DINT            //关中断
+         NOP
+         RETA
+         
+         
+         PUBLIC tskSti
+         RSEG CODE
+         
+tskSti 
+         MOVX.A  4(SP),-4(SP)
+         MOVX.A  0(SP),4(SP)
+         ADDX.A  #4,SP
+         BITX.A  #0x08,-8(SP)
+         BISX.A  -8(SP),SR
+         NOP
+         RETA
+         
+getSR    MOVX.W  SR,R12
+         
+         RETA
+         
+setSR    MOVX.W  R12,SR
+         DINT
+         RETA
+         
+         END

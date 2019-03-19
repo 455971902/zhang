@@ -1,0 +1,24 @@
+
+
+#ifndef _STACK_H_
+
+#define _STACK_H_
+
+
+
+#define   STACKSIZE    7000
+#define   MINISTACK    256     //单个任务堆栈最小大小值
+
+
+
+
+
+
+extern char* allocStack(int length);     //分配堆栈函数
+
+
+
+
+
+
+#endif

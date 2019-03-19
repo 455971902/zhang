@@ -1,0 +1,30 @@
+
+#ifndef _SEMAPHORE_H_
+#define _SEMAPHORE_H_
+
+#include "task.h"
+#include "port.h"
+
+typedef struct SEMAPHORE
+{
+    int count;     //信号量计数
+    
+    struct TSKPCB *taskList;     //等待该信号量的任务列表头
+    
+}SEMA;
+
+
+
+void initSema(SEMA *semaphore,unsigned int val);     //出示化信号量函数
+
+void upSema(SEMA *semaphore);     //信号量上升函数
+
+void downSema(SEMA *semaphore);    //信号量减函数
+
+
+void sWakeUp(struct TSKPCB **taskList);     //信号量中使用的唤醒函数
+
+void sSleep(struct TSKPCB **taskList);       //信号量中使用的睡眠函数
+
+
+#endif

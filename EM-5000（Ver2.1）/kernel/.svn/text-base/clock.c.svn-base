@@ -1,0 +1,100 @@
+
+
+
+#include "clock.h"
+
+#include "task.h"
+
+#include "kernel.h"
+
+
+#include "MSP430x54x.h"
+
+
+
+extern void initClock(void)      //初始化定时器函数
+{
+    TA0CCR0 = 15;
+    
+    TA0CTL |= TASSEL__ACLK;
+    
+    TA0CCTL0 |= CCIE;
+    
+    TA0CTL |= TACLR_L + MC__UP;
+}
+
+
+
+
+#pragma vector=TIMER0_A0_VECTOR
+
+
+__interrupt void timerA0(void)
+{
+    runIntIsr((void (*)(void))tickIsr);
+    LPM3_EXIT;
+}
+
+
+extern volatile void tickIsr(void)
+{
+    int i = 0;
+    
+    struct TSKPCB *tskpcb = 0;
+    cli();    //关中断
+    
+    
+    jiff ++;    //系统运行总计时
+    
+    for(i = 0; i < 64; i++)
+    {
+        if(priorTask[i])
+        {
+            tskpcb = (struct TSKPCB*)priorTask[i];
+            
+            if(tskpcb->state == TSKRDY && (tskpcb == curTask))
+            {
+                tskpcb->uTime ++;
+                
+                if(tskpcb->delayTime <= tskpcb->uTime) //导致软实时性任务
+                {
+                    tskpcb->uTime = 0;
+                }
+            }else if(tskpcb->state == TSKWAIT)
+            {
+                tskpcb->uTime ++;
+                
+                if(tskpcb->uTime >= tskpcb->delayTime)
+                {
+                    tskpcb->uTime = 0;
+                    
+                    tskpcb->state = TSKRDY;   //再次获得运行时间
+                }
+            }else if(tskpcb->state == TSKSLEEP)   //处于睡眠状态
+            {
+                if(tskpcb->sleepTime > 0)
+                {
+                    tskpcb->sleepTime --;   //延时值减一
+                }else
+                {
+                    tskpcb->state = TSKRDY;    //任务获得运行时间
+                }
+            }
+        }
+    }
+    sti();    //开中断
+}
+
+
+extern unsigned long getJiff(void)   //获得系统总运行时长
+{
+    unsigned long re = 0;
+    
+    cli();
+    
+    re = jiff;
+    
+    sti();
+    
+    return re;
+}

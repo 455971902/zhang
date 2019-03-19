@@ -1,0 +1,311 @@
+
+
+#include "MSP430x54x.h"
+#include "task.h"
+#include "stack.h"
+#include "stdlib.h"
+#include "port.h"
+
+
+
+
+volatile struct TSKPCB *priorTask[64] = {0,0,};    //按优先级排列的任务队列数组 
+
+volatile struct TSKPCB  *curTask = 0;    //当前任务
+
+volatile unsigned long jiff = 0;
+
+
+struct TSKPCB*  createXTask(void (*task)(),int stackSize,char prior,int delayTime)     //创建任务函数
+{
+    struct TSKPCB *taskPcb = 0;
+    
+    if(task)   //如果任务句柄可用
+    {
+         taskPcb = (struct TSKPCB*)malloc(sizeof(struct TSKPCB));   //申请任务控制块
+         
+         if(taskPcb)   //如果申请任务控制块成功
+         {
+             taskPcb->sp = allocStack(stackSize);    //申请任务堆栈内存
+             
+             if(taskPcb->sp)   //申请任务堆栈成功
+             {
+                 taskPcb->priority = prior;        //设置任务优先级
+                 taskPcb->delayTime = delayTime;   //设置任务运行间隔时间
+                 taskPcb->state = TSKRDY;          //设置任务为就绪状态
+                 taskPcb->uTime = 0;               //设置任务从启动运行到现在经过了时间0
+                 
+                 taskPcb->task = task;
+                 
+                 initXTask(taskPcb);     //初始化任务
+                 
+                 curTask = taskPcb;      //设置为当前任务
+             }
+         }
+    }
+    
+    return  taskPcb;    //返回创建的任务控制块地址
+}
+
+
+
+void initXTask(struct TSKPCB *task)   //任务初始化函数，在汇编文件里实现
+{
+    *((unsigned long*)task->sp) = (unsigned long)task->task;            //任务函数地址
+    task->sp -= 4;
+    *((unsigned long*)task->sp) = 0x0008;                //SR值
+    
+    task->sp -= 4;
+    *((unsigned long*)task->sp) = 0;
+
+    task->sp -= 4;
+    *((unsigned long*)task->sp) = 0;
+    
+    task->sp -= 4;
+    *((unsigned long*)task->sp) = 0;
+        
+    task->sp -= 4;
+    *((unsigned long*)task->sp) = 0;
+        
+    task->sp -= 4;
+    *((unsigned long*)task->sp) = 0;
+        
+    task->sp -= 4;
+    *((unsigned long*)task->sp) = 0;
+        
+    task->sp -= 4;
+    *((unsigned long*)task->sp) = 0;
+        
+    task->sp -= 4;
+    *((unsigned long*)task->sp) = 0;
+       
+    task->sp -= 4;
+    *((unsigned long*)task->sp) = 0;
+        
+    task->sp -= 4;
+    *((unsigned long*)task->sp) = 0;
+        
+    task->sp -= 4;
+    *((unsigned long*)task->sp) = 0;
+        
+    task->sp -= 4;
+    *((unsigned long*)task->sp) = 0;
+}
+
+
+/*
+
+void start(struct TSKPCB* task)       //启动任务函数，在汇编文件里实现
+{
+#if      __DATA_MODEL__ == __DATA_MODEL_SMALL__
+    
+    osStartSmallPort((struct TSKPCB*)task);
+
+#elif    __DATA_MODEL__ == __DATA_MODEL_MEDIUM__
+
+#error   "DATA MODEL MEDIUM is not supported ! Please check your configration."
+
+#elif    __DATA_MODEL__ == __DATA_MODEL_LARGE__
+    
+    osStartLargePort(task);
+        
+#endif
+}
+
+void intIsrPort(void (*intIsrFun)(void),unsigned char *intCount)
+{
+#if      __DATA_MODEL__ == __DATA_MODEL_SMALL__
+    
+    intIsrSmallPort(intIsrFun,intCount);
+
+#elif    __DATA_MODEL__ == __DATA_MODEL_MEDIUM__
+
+#error   "DATA MODEL MEDIUM is not supported ! Please check your configration."
+
+#elif    __DATA_MODEL__ == __DATA_MODEL_LARGE__
+    
+    intIsrSmallPort(intIsrFun,intCount);
+        
+#endif
+}
+
+
+
+void swContexPort(void)
+{
+#if      __DATA_MODEL__ == __DATA_MODEL_SMALL__
+    
+    swCtxSmallPort();
+
+#elif    __DATA_MODEL__ == __DATA_MODEL_MEDIUM__
+
+#error   "DATA MODEL MEDIUM is not supported ! Please check your configration."
+
+#elif    __DATA_MODEL__ == __DATA_MODEL_LARGE__
+    
+    swCtxLargePort();
+        
+#endif  
+}
+
+*/
+
+
+volatile void schdule(void)       //任务调度函数
+{
+    int i = 0;
+    struct TSKPCB *taskPcb;
+    
+    
+    for(i=0;i<64;i++)
+    {
+        taskPcb =(struct TSKPCB*) priorTask[i];
+        
+        if(taskPcb)
+        {
+            if(taskPcb->state == TSKRDY)   //任务处于就绪态
+            {
+                curTask = taskPcb;
+                break;     //结束寻找更低优先级的任务
+            }else if(taskPcb->state == TSKWAIT)
+            {
+                if(taskPcb->delayTime == 0)
+                {
+                    taskPcb->state = TSKRDY;
+                    curTask = taskPcb;
+                    break;
+                }
+            }
+        }
+    }
+}
+
+
+void powerSave(void)       //进入低功耗模式函数
+{
+    //LPM3;    //进入低功耗模式
+}
+
+
+
+void sleep_delay(void)           //睡眠函数
+{
+    cli();                       //关中断
+    
+    curTask->state = TSKWAIT;    //进入等待状态
+    
+    //curTask->uTime = 0;
+    
+    swContexPort();              //切换上下文
+    
+    sti();                       //开中断
+}
+
+void sleepMs(unsigned long ms)  //休眠毫秒函数
+{
+    cli();
+    
+    curTask->state = TSKSLEEP;  //进入休眠状态
+    
+    curTask->sleepTime = ms << 1;
+    
+    swContexPort();            //切换上下文
+    
+    sti();
+}
+
+
+void sleep(struct TSKPCB **taskList)       //驱动程序的睡眠函数
+{
+    struct TSKPCB *tskpcb = 0;
+    
+    //cli();    //   关中断
+    
+    curTask->state = TSKBLOCK;   //进入阻塞状态
+    
+    if(*taskList)
+    {
+        tskpcb = *taskList;
+        
+        while(tskpcb->nextBlock)
+        {
+            tskpcb = tskpcb->nextBlock;
+        }
+        
+        tskpcb->nextBlock = (struct TSKPCB*)curTask;    //加入到队列尾
+        
+        tskpcb->nextBlock->nextBlock = NULL;
+        
+    }else
+    {
+        *taskList =(struct TSKPCB*)curTask;    //使当前任务加入等待队列头taskList
+        (*taskList)->nextBlock = NULL;
+    }
+    
+    
+    swContexPort();       //切换到另外一个任务
+    
+    //sti();    //开中断
+}
+
+
+void intWakeUp(struct TSKPCB **taskList)    //驱动程序中的唤醒函数,仅可在中断处理程序里使用
+{
+    cli();   //关中断
+    
+    struct TSKPCB *tskpcb = 0;
+    struct TSKPCB *tmp = 0;
+    
+    if(*taskList)   //如果任务链存在
+    {
+        tskpcb = *taskList;
+        
+        while(tskpcb)
+        {
+            tskpcb->state = TSKRDY;    //任务设置为就绪状态
+            
+            tskpcb->uTime = 0;         //任务从运行到当前所用时间清0
+            
+            tmp = tskpcb;
+            
+            tskpcb = tskpcb->nextBlock;
+            
+            tmp->nextBlock = NULL;
+        }
+        
+        *taskList = NULL;
+        
+        //swContexPort();              //中断处理程序里不可切换上下文
+    }
+    
+    sti();   //开中断
+}
+
+
+void wakeUp(struct TSKPCB **taskList)
+{
+    struct TSKPCB *tskpcb = 0;
+    struct TSKPCB *tmp = 0;
+    
+    if(*taskList)   //如果任务链存在
+    {
+        tskpcb = *taskList;
+        
+        while(tskpcb)
+        {
+            tskpcb->state = TSKRDY;    //任务设置为就绪状态
+            
+            tskpcb->uTime = 0;         //任务从运行到当前所用时间清0
+            
+            tmp = tskpcb;
+            
+            tskpcb = tskpcb->nextBlock;
+            
+            tmp->nextBlock = NULL;
+        }
+        
+        *taskList = NULL;
+        
+        swContexPort();              //中断处理程序里不可切换上下文
+    }
+}

@@ -1,0 +1,146 @@
+[DebugChecksum]
+Checksum=168851881
+[DisAssemblyWindow]
+NumStates=_ 1
+State 1=_ 1
+[InstructionProfiling]
+Enabled=_ 0
+[CodeCoverage]
+Enabled=_ 0
+[Profiling]
+Enabled=0
+[StackPlugin]
+Enabled=1
+OverflowWarningsEnabled=1
+WarningThreshold=90
+SpWarningsEnabled=1
+WarnHow=0
+UseTrigger=1
+TriggerName=main
+LimitSize=0
+ByteLimit=50
+[State Storage]
+Control Register=0
+[Sequencer]
+Control Register=0
+NextState0=0
+NextState1=0
+[Action Register]
+Break=2
+State Storage=0
+[TraceHelper]
+Enabled=0
+ShowSource=1
+[Stack]
+FillEnabled=0
+OverflowWarningsEnabled=1
+WarningThreshold=90
+SpWarningsEnabled=1
+WarnLogOnly=1
+UseTrigger=1
+TriggerName=main
+LimitSize=0
+ByteLimit=50
+[CallStack]
+ShowArgs=0
+[Disassembly]
+MixedMode=1
+[InterruptLog]
+LogEnabled=0
+SumEnabled=0
+GraphEnabled=0
+ShowTimeLog=1
+ShowTimeSum=1
+SumSortOrder=0
+[Breakpoints2]
+Count=0
+[Interrupts]
+Enabled=1
+[MemoryMap]
+Enabled=0
+Base=0
+UseAuto=0
+TypeViolation=1
+UnspecRange=1
+ActionState=1
+[Trace1]
+Enabled=0
+ShowSource=1
+[struct_types]
+Fmt0=BMP085_PARAMETER-ac1	4	0
+Fmt1=BMP085_PARAMETER-ac2	4	0
+Fmt2=BMP085_PARAMETER-ac3	4	0
+Fmt3=BMP085_PARAMETER-ac4	4	0
+Fmt4=BMP085_PARAMETER-ac5	4	0
+Fmt5=BMP085_PARAMETER-ac6	4	0
+Fmt6=BMP085_PARAMETER-b1	4	0
+Fmt7=BMP085_PARAMETER-b2	4	0
+Fmt8=BMP085_PARAMETER-mb	4	0
+Fmt9=BMP085_PARAMETER-mc	4	0
+Fmt10=BMP085_PARAMETER-md	4	0
+Fmt11=TIME-date	3	0
+Fmt12=TIME-hour	3	0
+Fmt13=TIME-min	3	0
+Fmt14=TIME-month	3	0
+Fmt15=TIME-sec	2	0
+Fmt16=TIME-year	3	0
+[array_types]
+Fmt0=unsigned int[3]	4	0
+Fmt1=unsigned int[7]	4	0
+[watch_formats]
+Fmt0={W}0:TB0CCR1	2	0
+Fmt1={W}0:bmp085_parameter	0	4
+Fmt2={W}0:lastStoreNum	3	0
+Fmt3={W}0:temp	4	0
+Fmt4={W}0:test	4	0
+Fmt5={W}0:width	3	0
+[Log file]
+LoggingEnabled=_ 0
+LogFile=_ ""
+Category=_ 0
+[TermIOLog]
+LoggingEnabled=_ 0
+LogFile=_ ""
+[CallStackLog]
+Enabled=0
+[DriverProfiling]
+Enabled=0
+Mode=0
+Graph=0
+Symbiont=0
+[Breakpoints]
+Count=0
+[FET]
+Clock mode=14
+Extended Clock mode=-1
+Secure Password=
+Extended Clock Control Enable=1
+Advanced Extended Clock Control=0
+Emulation mode=0
+Free running=0
+Shutting Down=3
+[Memory Dump]
+Start address=
+Lenghth=
+Address info=0
+Format=0
+Dump registers=0
+PC=0
+SP=0
+SR=0
+all registers=0
+File name=
+[Aliases]
+A0=_ "C:\Documents and Settings\Administrator\桌面\EM-1500\main.c" ""
+A1=_ "C:\Documents and Settings\Administrator\桌面\温压版EM系列\EM-5000\driver\adc12\adc12.c" ""
+A2=_ "C:\WINDOWS\chongjian 1500\500_show\wancheng\500_NEW_OS_NEW_MODGUI_add_english\bsp.c" ""
+A3=_ "C:\WINDOWS\chongjian 1500\500_show\wancheng\500_NEW_OS_NEW_MODGUI_add_english\driver\key\key.c" ""
+A4=_ "E:\孙国栋\小个体项目移交\第三版软件（最新）（新版硬件）\1500_ver_3\bsp.c" "E:\小个体烧写\小个体项目移交\第三版软件（最新）（新版硬件）\1500_ver_3\bsp.c"
+A5=_ "E:\孙国栋\小个体项目移交\第三版软件（最新）（新版硬件）\1500_ver_3\main.c" ""
+A6=_ "F:\小 个体\NEW_GETI\Os_NEW_B_500samllSamp\bsp.c" ""
+A7=_ "F:\小 个体\NEW_GETI\Os_NEW_B_samllSamp\bsp.c" ""
+A8=_ "F:\小 个体\NEW_GETI\Os_NEW_B_samllSamp\driver\key\key.c" ""
+A9=_ "H:\asad0.2\main.c" ""
+A10=_ "J:\asad0.2\kernel\tick.c" ""
+Count=11
+SuppressDialog=1

@@ -1,0 +1,37 @@
+
+
+#include "stack.h"
+
+
+
+#pragma pack(4)
+__no_init static char stackBuff[STACKSIZE];
+
+
+static int nextStack = 0;   //下一个任务堆栈的开始
+
+
+extern char* allocStack(int length)      //分配堆栈函数
+{
+    char *re = 0;  
+    
+    if(length < MINISTACK)
+    {
+        length = MINISTACK;
+    }
+    
+    if(length%4)
+    {
+        length += 4 - length%4;
+    }
+    
+    if(length + nextStack < STACKSIZE)
+    {
+        re = (char*) &stackBuff[nextStack + length];
+        
+        nextStack += length;
+    }
+    
+    
+    return re;
+}

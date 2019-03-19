@@ -1,0 +1,111 @@
+
+
+#include "semaphore.h"
+
+
+void initSema(SEMA *semaphore,unsigned int val)      //出示化信号量函数
+{
+    if(semaphore)
+    {
+        semaphore->count = val;     //设置信号量的初始值
+        
+        semaphore->taskList = 0;
+    }
+}
+
+
+
+void upSema(SEMA *semaphore)     //信号量上升函数
+{
+    if(semaphore)
+    {
+        cli();
+        
+        semaphore->count ++;      //信号量自加1
+        
+        if(semaphore->count > 0)  //如果信号量可用，则唤醒等待队列
+        {
+            sWakeUp(&semaphore->taskList);   //唤醒等待该信号量的队列
+        }
+  
+        sti();
+    }
+}
+
+
+void downSema(SEMA *semaphore)    //信号量减函数
+{
+    if(semaphore)
+    {
+        cli();
+        
+        while(semaphore->count < 1)
+        {
+            sSleep(&semaphore->taskList);    //使当前进程加入到等待该信号量的队列
+        }
+        
+        semaphore->count --;     //信号量减1
+        sti();
+    }
+}
+
+
+void sWakeUp(struct TSKPCB **taskList)    //信号量中使用的唤醒函数
+{
+    
+    struct TSKPCB *tskpcb = 0;
+    struct TSKPCB *tmp = 0;
+    
+    if(*taskList)   //如果任务链存在
+    {
+        tskpcb = *taskList;
+        
+        while(tskpcb)
+        {
+            tskpcb->state = TSKRDY;    //任务设置为就绪状态
+            
+            //tskpcb->uTime = 0;         //任务从运行到当前所用时间清0
+            
+            tmp = tskpcb;
+            
+            tskpcb = tskpcb->nextBlock;
+            
+            tmp->nextBlock = (struct TSKPCB*)0;
+        }
+        
+        *taskList = (struct TSKPCB*)0;
+        
+        swContexPort();        //执行上下文切换
+    }
+    
+}
+
+
+void sSleep(struct TSKPCB **taskList)       //信号量中使用的睡眠函数
+{
+    struct TSKPCB *tskpcb = 0;
+    
+    curTask->state = TSKBLOCK;   //进入阻塞状态
+    
+    if(*taskList)
+    {
+
+        tskpcb = *taskList;
+        
+        while(tskpcb->nextBlock)
+        {
+            tskpcb = tskpcb->nextBlock;
+        }
+        
+        tskpcb->nextBlock = (struct TSKPCB*)curTask;    //加入到队列尾
+        
+        tskpcb->nextBlock->nextBlock = (struct TSKPCB*)0;
+
+        
+    }else
+    {
+        *taskList =(struct TSKPCB*)curTask;    //使当前任务加入等待队列头taskList
+        (*taskList)->nextBlock =(struct TSKPCB*)0;
+    }
+    swContexPort();       //切换到另外一个任务
+}

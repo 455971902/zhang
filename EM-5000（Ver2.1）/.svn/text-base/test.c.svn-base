@@ -1,0 +1,272 @@
+#include<msp430x54x.h>
+#include "TEST.H"
+#include "DS1302.H"
+#include  "pump.h"
+#include "lcd.h"
+#include "key.H"
+#include "display.H"
+#include "adc12.h"
+#include "charger.h"
+
+
+#define SHUA_DELY 10
+#define TEST_TS 300
+#define OUT_DY  60
+
+#define SHI_X 15
+
+#define SHI_Y 18
+#define QI_Y   33
+#define DIAN_Y 48
+#define OFF_DELY 200
+
+
+
+unsigned char  test_flag=1;
+static unsigned int cntstate=0;
+
+
+volatile void delay_ms(unsigned int mm)
+{
+ unsigned int i,j;
+ for(i=0;i<mm;i++)
+   for(j=0;j<900;j++);
+
+}
+
+
+
+
+
+
+unsigned char check_state(void)
+{
+  
+  cntstate++;
+  delay_ms(1);
+  if(cntstate>TEST_TS)
+  {
+      if(cntstate==TEST_TS+1)	
+          clr_lcd();
+      
+      if(cntstate==65530)
+          cntstate--;
+ // else cntstate=TEST_TS+4; 
+      return 1;  
+  }else
+  {
+      return 0;
+  }
+}
+
+
+void disply_result(void)
+{
+   print_str(17,0,"Self Test Result",0);
+   draw_rect(5,13,115,50);
+   print_ch_str(SHI_X,SHI_Y,"时钟：",0);
+   print_ch_str(SHI_X,QI_Y,"气泵：",0);
+   print_ch_str(SHI_X,48,"电量：",0);
+  switch(0)
+  {
+  case 0: {print_ch_str(SHI_X+36,SHI_Y,"正",0);print_ch_str(SHI_X+60,SHI_Y,"常",0);}break;
+  case 1: {print_ch_str(SHI_X+36,SHI_Y,"线路故障",0);}break;
+  case 2: {print_ch_str(SHI_X+36,SHI_Y,"芯片故障",0);}break;
+  default: break;
+  }
+  switch(0)
+  {
+  case 0: {print_ch_str(SHI_X+36,QI_Y,"正",0);print_ch_str(SHI_X+60,QI_Y,"常",0);}break;
+  case 1: {print_ch_str(SHI_X+36,QI_Y,"线路故障",0);}break;
+  case 2: {print_ch_str(SHI_X+36,QI_Y,"阻塞故障",0);}break;
+  default: break;
+  }
+ 
+    switch ( getBatLev() )
+    {
+        case 0:            
+            print_ch_str(SHI_X+36,DIAN_Y,"电",0);
+            print_ch_str(SHI_X+60,DIAN_Y,"量",0);
+            clr_rect( SHI_X+76, DIAN_Y, 18, 12 );
+            print_int(SHI_X+76,DIAN_Y,3,0);
+            putchar(SHI_X+82,DIAN_Y,'%',0);
+            break; 
+            
+        case 1:
+            print_ch_str(SHI_X+36,DIAN_Y,"电",0);
+            print_ch_str(SHI_X+60,DIAN_Y,"量",0);
+            clr_rect( SHI_X+76, DIAN_Y, 18, 12 );
+            print_int( SHI_X+76, DIAN_Y, 25, 0 );
+            putchar(SHI_X+94,DIAN_Y,'%',0);
+            break;  
+            
+        case 2:
+            print_ch_str(SHI_X+36,DIAN_Y,"电",0);
+            print_ch_str(SHI_X+60,DIAN_Y,"量",0);
+            clr_rect( SHI_X+76, DIAN_Y, 18, 12 );
+            print_int( SHI_X+76, DIAN_Y, 50, 0 );
+            putchar(SHI_X+94,DIAN_Y,'%',0);
+            break;
+            
+        case 3:
+            print_ch_str(SHI_X+36,DIAN_Y,"电",0);
+            print_ch_str(SHI_X+60,DIAN_Y,"量",0);
+            clr_rect( SHI_X+76, DIAN_Y, 18, 12 );
+            print_int( SHI_X+76, DIAN_Y, 75, 0 );
+            putchar(SHI_X+94,DIAN_Y,'%',0);
+            break;
+            
+        case 4:
+            print_ch_str(SHI_X+36,DIAN_Y,"电",0);
+            print_ch_str(SHI_X+60,DIAN_Y,"量",0);
+            clr_rect( SHI_X+76, DIAN_Y, 18, 12 );
+            print_int( SHI_X+76, DIAN_Y, 100, 0 );
+            putchar(SHI_X+94,DIAN_Y,'%',0);
+            break;
+      default: break;
+    }
+
+} 
+void powerOn(void)     //开机函数
+{
+     P1DIR |= BIT3;
+     P1OUT &= ~BIT3;  
+}
+
+void powerOff(void)
+{
+ unsigned int i=0,j=120;
+ static unsigned long delay;
+ 
+ clr_lcd();
+ draw_rect(99,37,50,2);
+ while(1)
+ {
+  
+   i++;j--;
+   
+   
+   if(i<100)
+   draw_symbol(0,0,100-i,50,open+140+7*i,0);
+   if(j<92&&j>28)
+   draw_symbol(j,20,92-j,16,off+2*(j-28),0);
+   if(i==120+OFF_DELY)
+   {
+     clr_lcd();
+	 P1DIR |= BIT3;
+     P1OUT |= BIT3;
+     delay = 100000;
+     while(delay)
+     {
+         delay --;
+         P1OUT |= BIT3;
+     }
+     P1OUT &= ~BIT3;
+
+     break;
+   }
+
+   delay_ms(1);
+   if(i>120)
+   delay_ms(1);
+
+   WDTCTL = WDTPW + WDTCNTCL;  //喂狗
+   P6OUT ^= BIT0 ;             //外看门狗
+
+ }
+}
+
+
+
+void check(void)
+{ 
+   unsigned int Stest_cnt=0;
+   unsigned char keyy=0,ff=0;
+    
+   P6DIR |= BIT0;
+   
+   P1DIR |= BIT0;
+   P1OUT &= ~BIT0;
+    
+   P9DIR |= BIT0;
+   P9OUT |= BIT0;
+     
+   print_str(8,50,"   START TESTING",0);
+   
+   test_flag = 1; 
+   cntstate = 0;
+   
+   while(test_flag)
+   {
+       if(check_state()==1)
+       {	
+           disply_result(); 
+           keyy = getKey();
+           if(keyy==0x00&&ff==1)
+           {
+               test_flag=0;
+               delay_ms(200);
+           }
+      
+           if(keyy==0x20)
+           {
+               ff=1;
+               delay_ms(20);
+           }
+           else 
+           {
+               if(cntstate == TEST_TS + OUT_DY)
+               { 
+                   test_flag=0;
+                   clr_lcd();
+               }
+           }
+       }else
+       {
+           if(Stest_cnt<60+SHUA_DELY)
+           {
+               print_str(105,50,"   ",0);
+               print_str(5,50,"   ",0);
+           }
+		
+           if(Stest_cnt==60+SHUA_DELY)
+           {
+               print_str(105,50,">  ",0);
+               print_str(5,50,"  <",0);
+	   }
+           
+	   if(Stest_cnt==60+2*SHUA_DELY)
+	   {
+               print_str(105,50,">> ",0);
+               print_str(5,50," <<",0);
+	   }
+           
+           
+	   if(Stest_cnt==60+3*SHUA_DELY)
+	   {
+               print_str(105,50,">>>",0);
+               print_str(5,50,"<<<",0);
+	   }
+	  
+           Stest_cnt++;
+           delay_ms(5);
+           if(Stest_cnt==60+4*SHUA_DELY)
+               Stest_cnt=62;
+	   ////////
+           
+           if(Stest_cnt<61)
+           {
+               if( (Stest_cnt%2)==0)
+                   draw_symbol(120-2*Stest_cnt,0,120,50,open,0);
+	   }	  
+           else //if(Stest_cnt==121)
+           {
+               if(Stest_cnt==63)
+               draw_symbol(0,0,120,50,open,0);
+           }
+       }//WEI WAN CHENG 
+       WDTCTL = WDTPW + WDTCNTCL;  //喂狗
+       P6OUT ^= BIT0 ;             //外看门狗
+   }
+}
+

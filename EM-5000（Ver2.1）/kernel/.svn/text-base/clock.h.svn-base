@@ -1,0 +1,20 @@
+
+
+#ifndef _CLOCK_H_
+
+#define _CLOCK_H_
+
+
+
+extern void initClock(void);     //初始化定时器函数
+
+
+extern volatile void tickIsr(void);
+
+
+
+extern unsigned long getJiff(void);   //获得系统总运行时长
+
+
+
+#endif

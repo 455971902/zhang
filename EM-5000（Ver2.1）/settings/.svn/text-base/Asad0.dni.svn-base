@@ -1,0 +1,87 @@
+[Interrupts]
+Enabled=1
+[MemoryMap]
+Enabled=0
+Base=0
+UseAuto=0
+TypeViolation=1
+UnspecRange=1
+ActionState=1
+[TraceHelper]
+Enabled=0
+ShowSource=1
+[State Storage]
+Control Register=0
+[Sequencer]
+Control Register=0
+NextState0=0
+NextState1=0
+[Action Register]
+Break=1
+State Storage=0
+[DebugChecksum]
+Checksum=214183286
+[DisAssemblyWindow]
+NumStates=_ 1
+State 1=_ 1
+[InstructionProfiling]
+Enabled=_ 0
+[CodeCoverage]
+Enabled=_ 0
+[Profiling]
+Enabled=0
+[StackPlugin]
+Enabled=1
+OverflowWarningsEnabled=1
+WarningThreshold=90
+SpWarningsEnabled=1
+WarnHow=0
+UseTrigger=1
+TriggerName=main
+LimitSize=0
+ByteLimit=50
+[Log file]
+LoggingEnabled=_ 0
+LogFile=_ ""
+Category=_ 0
+[TermIOLog]
+LoggingEnabled=_ 0
+LogFile=_ ""
+[Breakpoints]
+Bp0=_ "STD_CODE" "{$PROJ_DIR$\display.c}.7839.3@1" 0 0 0 0 "" 0 ""
+Count=1
+[FET]
+Clock mode=14
+Extended Clock mode=-1
+Secure Password=
+Extended Clock Control Enable=1
+Advanced Extended Clock Control=0
+Emulation mode=0
+Free running=0
+Shutting Down=3
+[Memory Dump]
+Start address=
+Lenghth=
+Address info=0
+Format=0
+Dump registers=0
+PC=0
+SP=0
+SR=0
+all registers=0
+File name=
+[Aliases]
+A0=_ "C:\Documents and Settings\Administrator\桌面\EM-1500\旧界面\kernel\clock.c" ""
+A1=_ "C:\Documents and Settings\Administrator\桌面\旧界面\kernel\clock.c" ""
+A2=_ "C:\Documents and Settings\asadcheng\桌面\Asad0.1\kernel\kernel.c" ""
+A3=_ "C:\Documents and Settings\asadcheng\桌面\Asad0.1\port\task.c" ""
+A4=_ "K:\Asad0.2\kernel\clock.c" ""
+A5=_ "M:\Asad0.2\display.c" ""
+A6=_ "M:\Asad0.2\driver\key.c" ""
+A7=_ "M:\Asad0.2\kernel\clock.c" ""
+A8=_ "M:\Asad0.2\lcd.c" ""
+A9=_ "M:\Asad0.2\main.c" ""
+A10=_ "M:\Asad0.2\windows.c" ""
+A11=_ "P:\Asad0.2\port\task.c" ""
+Count=12
+SuppressDialog=1

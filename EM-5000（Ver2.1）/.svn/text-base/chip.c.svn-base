@@ -1,0 +1,43 @@
+
+
+
+#include "MSP430x54x.h"
+
+#include "chip.h"
+
+
+extern void init_Ucs(void)
+{
+  unsigned int i;
+  UCSCTL6|=XCAP_3;          //使XT1模块电容为12pF
+  P7SEL|=0x03;              //使XIN,XOUT引脚开通
+  
+  UCSCTL6|=XT2DRIVE_3;      //使XT2驱动外部晶振的频率为20Mhz
+  P5SEL|=0x0c;              //开通XT2IN,XT2OUT引脚
+  P5DIR=0x08;               //设置该通用I/O口的方向
+  UCSCTL6&=~XT2OFF;         //开启XT2模块
+  
+  do{
+    
+    UCSCTL7&=~XT1LFOFFG;    //复位XT1的失效标志
+    UCSCTL7&=~DCOFFG;       //复位DCO的失效标志
+    UCSCTL7&=~XT2OFFG;      //复位XT2的失效标志
+    SFRIFG1&=~OFIFG;        //复位时钟错误标志OFIFG
+
+    for(i=0;i<0xff;i++)     //延时一段时间
+    {
+      _NOP();
+    }
+    
+  }while(XT1LFOFFG&UCSCTL7 || DCOFFG&UCSCTL7 || XT2OFFG&UCSCTL7); //判断是否三个失效标志已复位
+}
+
+
+extern void delay(int time)
+{
+  int i; 
+  for(i=0;i<time;i++)
+  {
+    _NOP();
+  }
+}

@@ -1,0 +1,558 @@
+
+
+#include "pump.h"
+#include "MSP430x54x.h"
+#include "kernel.h"
+#include "key.h"
+#include "adc12.h"
+#include "stdlib.h"
+#include "flash.h"
+
+
+#define   startPwm1()           TB0CCTL1 |= OUTMOD_7     //启动PWM1宏
+#define   stopPwm1()            TB0CCTL1 &= ~OUTMOD_7    //停止PWM1宏
+#define   setPwm1Duty(x)        TB0CCR1  = ((x))         //设置PWM1Duty宏
+#define   setSampLed()          P9OUT &= ~BIT7           //点亮指示正采样LED宏
+#define   clrSampLed()          P9OUT |= BIT7            //熄灭指示正在采样LED宏
+
+
+
+static unsigned int MAXSAMPFLOW = 1500;     //最大流量值
+static unsigned int MINSAMPFLOW = 10;       //最小流量值
+static unsigned int MIDFLOW = 50;
+
+static unsigned char startFlag = 0;  //气泵启动标志
+
+static unsigned int smpPresure = 200;
+
+static unsigned int smpFlow = 200;
+
+static unsigned int curFlow = 0;    //当前流量值
+
+
+static int fault = 0; 
+
+static int dutyVal = 10;           //pwm1 Duty值
+static int faultCnt = 0;
+
+
+void initTb0(void)                //初始化定时器TB0
+{
+    TB0CTL |= TBSSEL__SMCLK +     //使用SMCLK作为时钟源
+              TBCLR + MC__UP;     //清空定时器基数器
+    
+    TB0CCR0 = 9000;               //PWM波周期
+    
+    TB0CCTL1 |= OUTMOD_0;         //TB1设置为输出模式
+    
+    TB0CCTL2 |= OUTMOD_0;         //TB2设置为输出模式
+    
+    TB0CCR1 = 10;                 //pwm占空比
+    TB0CCR2 = 10;
+}
+
+
+void initPumpIo(void)   // 初始化PWM IO输出端口
+{    
+    P4DIR |= BIT1;      //使P4.1为输出端口
+    P4SEL |= BIT1;      //使P4.1为PWM波输出
+    
+    P4DIR |= BIT2;      //使P4.2为输出口
+    P4SEL |= BIT2;      //使P4.2为PWM输出口
+    
+    P9DIR |= BIT7;      //使P9.7为输出口
+    P9OUT |= BIT7;     //使P9.7输出为高电平
+}
+
+
+void initPumpPwm(void)       //初始化PWM波发生器函数
+{
+    initTb0();               //初始化TB0
+    initPumpIo();            //初始化电机控制IO
+}
+
+
+void setMaxFlow(unsigned int maxFlow)
+{
+    cli();   //关中断
+    
+    MAXSAMPFLOW = maxFlow;
+    
+    sti();   //开中断
+}
+
+void setMinFlow(unsigned int minFlow)
+{
+    cli();   //关中断
+    
+    MINSAMPFLOW = minFlow;
+    
+    sti();   //开中断
+}
+
+void setMidflow(unsigned int midFlow)
+{
+    cli();   //关中断
+    
+    MIDFLOW = midFlow;
+    
+    sti();   //开中断
+}
+
+
+
+void startPump(int flow)       //启动采样函数
+{
+    int i;
+    unsigned int readPresure;
+    //unsigned int readI;        //读出对应流量的电流值
+    
+    if(flow > STOP_FLOW)       //判断需要采样的流量值是否大于最大值，如果是则设置为最大值
+    {
+        flow = STOP_FLOW;
+    }
+    
+    if(flow < START_FLOW)      //判断需要采样的流量是否小于最小值，如果是设置为最小值
+    {
+        flow = START_FLOW;
+    }
+    
+    if(flow < 50)
+    {
+        i = ((int)(flow - 10)/10);
+        
+        i = i << 1;
+        
+        readPresure = readFlash((unsigned int*)(F_P_TABLE+i));
+        //readI       = readFlash((unsigned int*)(F_I_TABLE+i));
+    }else
+    {
+        i = ((int)(flow - 50)/MIDFLOW) + 4 ; //获得Flow-Presure表的索引值
+        
+        i = i << 1;
+        
+        readPresure = readFlash((unsigned int*)(F_P_TABLE+i));    //
+        //readI       = readFlash((unsigned int*)(F_I_TABLE+i));
+    }
+    
+    
+    cli();    //关中断
+    
+    smpPresure = readPresure;  //设置采样压力值
+    
+    faultCnt = 0;
+    fault = 0;
+    
+    smpFlow = flow;
+    
+    dutyVal = 1500;
+    
+    setPwm1Duty(dutyVal);       //设置Pwm1Duty
+    
+    startPwm1();             //启动Pwm1
+    
+    startFlag = 1;            //使控制标志为启动状态
+    
+    setSampLed();            //点亮指示正采样LED灯
+    
+    sti();   //开中断
+}
+
+
+void stopPump(void)            //停止采样函数
+{
+    cli();    //关中断
+    
+    setPwm1Duty(10);          //使duty为10
+    stopPwm1();               //停止Pwm1
+
+    startFlag = 0;           //使标志为停止状态
+    
+    clrSampLed();            //熄灭指示正采样LED灯
+    
+    sti();   //开中断
+}
+
+
+void changeFlow(int flow)      //改变流量函数
+{
+    int i;
+    unsigned int readPresure;
+    //unsigned int readI;
+    
+    if(flow > STOP_FLOW)//判断需要采样的流量值是否大于最大值，如果是则设置为最大值
+    {
+        flow = STOP_FLOW;
+    }
+    
+    if(flow < START_FLOW)//判断需要采样的流量是否小于最小值，如果是设置为最小值
+    {
+        flow = START_FLOW;
+    }
+    
+    if(flow < 50)
+    {
+        i = ((int)(flow - 10)/10);
+        
+        i = i << 1;
+        
+        readPresure = readFlash((unsigned int*)(F_P_TABLE+i));
+        //readI       = readFlash((unsigned int*)(F_I_TABLE+i));
+    }else
+    {
+        i = ((int)(flow - 50)/MIDFLOW) + 4 ; //获得Flow-Presure表的索引值
+        
+        i = i << 1;
+        
+        readPresure = readFlash((unsigned int*)(F_P_TABLE+i));  
+        //readI       = readFlash((unsigned int*)(F_I_TABLE+i));
+    }
+    
+    
+    cli();         //关中断
+    
+    smpPresure = readPresure;
+    smpFlow = flow;
+    
+    sti();         //开中断
+}
+
+
+void changePresure(unsigned int Presure)//改变当前PID控制压力值
+{                                       //此函数在校准流量时使用
+    cli();         //关中断
+    
+    smpPresure = Presure;
+    
+    sti();         //开中断
+}
+
+
+
+unsigned int getPFromFlow(unsigned int flow)  //从流量获得压力值，主要是访问
+{                                             //Flow-Presure表获得
+    unsigned int re = 0;
+    int i;
+
+    
+    if(flow > STOP_FLOW)//判断需要采样的流量值是否大于最大值，如果是则设置为最大值
+    {
+        flow = STOP_FLOW;
+    }
+    
+    if(flow < START_FLOW)//判断需要采样的流量是否小于最小值，如果是设置为最小值
+    {
+        flow = START_FLOW;
+    }
+    
+
+    if(flow < 50)
+    {
+        i = ((int)(flow - 10)/10);
+        
+        i = i << 1;
+        
+        re = readFlash((unsigned int*)(F_P_TABLE+i));
+    }else
+    {
+        i = ((int)(flow - 50)/MIDFLOW) + 4 ; //获得Flow-Presure表的索引值
+        
+        i = i << 1;
+        
+        re = readFlash((unsigned int*)(F_P_TABLE+i));    //将对应的压力值写入到Flow-Presure表   
+    }
+    
+    return re;
+}
+
+
+
+void writePToFlow(unsigned int p,unsigned int flow)  //将flow对应的presure值写入到
+{                                                    //Flow-Presure表
+    int i;
+    
+    if(flow > STOP_FLOW)//判断需要采样的流量值是否大于最大值，如果是则设置为最大值
+    {
+        flow = STOP_FLOW;
+    }
+    
+    if(flow < START_FLOW)//判断需要采样的流量是否小于最小值，如果是设置为最小值
+    {
+        flow = START_FLOW;
+    }
+    
+    
+    if(flow < 50)
+    {
+        i = ((int)(flow - 10)/10) << 1;
+        cli();      //关中断
+        writeFlash(p,F_P_TABLE+i);
+        sti();      //开中断
+        
+    }else
+    {
+        i = (((int)(flow - 50)/MIDFLOW) + 4) << 1 ; //获得Flow-Presure表的索引值
+        cli();      //关中断
+        writeFlash(p,F_P_TABLE+i);    //将对应的压力值写入到Flow-Presure表   
+        sti();      //开中断
+    }
+}
+
+/*
+
+void writeIToFlow(unsigned int I,unsigned int flow)  //将flow对应的电流值写入到
+{                                                    //flow-I表里
+    int i;
+    
+    if(flow > STOP_FLOW)//判断需要采样的流量值是否大于最大值，如果是则设置为最大值
+    {
+        flow = STOP_FLOW;
+    }
+    
+    if(flow < START_FLOW)//判断需要采样的流量是否小于最小值，如果是设置为最小值
+    {
+        flow = START_FLOW;
+    }
+    
+    if(flow < 50)
+    {
+        i = ((int)(flow - 10)/10) << 1;
+        
+        writeFlash(I,F_I_TABLE+i);
+    }else
+    {
+        i = (((int)(flow - 50)/MIDFLOW) + 4) << 1 ; //获得Flow-Presure表的索引值
+        
+        writeFlash(I,F_I_TABLE+i);    //将对应的压力值写入到Flow-Presure表   
+    }
+}
+
+*/
+
+
+
+void calcuTask(void)  //计算瞬态流量任务
+{
+    unsigned int actPre = 0;     //实际采样流量值
+    
+    unsigned int p1 = 0;
+    unsigned int p2 = 0;
+    
+    unsigned int flow = 0;
+    unsigned int stopPre = 10;    //在停止状态下的压力值，用于使流量归0
+    
+    while(1)
+    {
+        if(startFlag)
+        {
+            actPre = getPAdc();  //获得当前实际压力值
+            
+            for(flow = MINSAMPFLOW;flow <= MAXSAMPFLOW; flow += MIDFLOW)
+            {
+                if(flow == MINSAMPFLOW)         //如果采样处于最小处边界
+                {
+                    p1 = getPFromFlow(flow);
+                    p2 = getPFromFlow(flow + MIDFLOW);
+                    
+                    if(actPre < p1)   //压力值小于最小流量处的压力值
+                    {
+                        cli();   //关中断
+                        curFlow = flow - (unsigned int)(MIDFLOW /(1.0*(p2 - p1))*(p1 - actPre));
+                        if(actPre <= stopPre)
+                        {
+                            curFlow = 0;
+                        }
+                        sti();   //开中断
+                        break;
+                    }
+                }else if(flow == MAXSAMPFLOW)   //如果处于最大处边界
+                {
+                    p1 = getPFromFlow(flow - MIDFLOW);
+                    p2 = getPFromFlow(flow);
+                    
+                    if(actPre >= p1)
+                    {
+                        cli();   //开中断
+                        curFlow = (unsigned int)(MIDFLOW /(1.0*(p2 - p1))*(actPre - p1)) + flow - MIDFLOW;
+                        if(actPre <= stopPre)
+                        {
+                            curFlow = 0;
+                        }
+                        sti();   //关中断
+                        break;
+                    }
+                }else
+                {
+                    p1 = getPFromFlow(flow - MIDFLOW);
+                    p2 = getPFromFlow(flow);
+                    
+                    if(actPre >= p1 && actPre < p2)
+                    {
+                        cli();   //开中断
+                        curFlow = (unsigned int)(MIDFLOW /(1.0*(p2 - p1))*(actPre - p1)) + flow - MIDFLOW;
+                        if(actPre <= stopPre)
+                        {
+                            curFlow = 0;
+                        }
+                        sti();   //关中断
+                        break;
+                    }
+                }
+            }
+            
+            if(curFlow <= 0)    //出错处理
+            {
+                if(faultCnt >= 90)
+                {
+                    cli();
+                    fault  = 1;
+                    sti();
+                }else
+                {
+                    faultCnt ++;
+                }
+                
+            }else
+            {
+                faultCnt = 0;
+            }
+            
+            if(curFlow < 100 && dutyVal >= 8998)
+            {
+                cli();
+                fault = 1;
+                sti();
+            }
+            
+            if(curFlow > smpFlow)
+            {
+                if(curFlow - smpFlow > 50)
+                {
+                    clrSampLed();    //使LED灯灭
+                }else
+                {
+                    setSampLed();
+                }
+            }
+            
+            if(curFlow <= smpFlow)
+            {
+                if(smpFlow - curFlow > 50)
+                {
+                    clrSampLed();
+                }else
+                {
+                    setSampLed();
+                }
+            }
+            
+        }else
+        {
+            cli();                      //关中断
+            
+            curFlow = 0;                //没有启动采样，则采样流量为0
+            
+            sti();                      //开中断
+            
+            stopPre = getPAdc() + 7;    //获得在停止状态下的压力值
+        }
+        sleep_delay();
+    }
+}
+
+
+
+
+int getFault(void)    //获得采样错误状态
+{
+    int curFault = 0;
+    
+    cli();
+    curFault = fault;   //获得错误状态
+    sti();
+    
+    return curFault;
+}
+
+
+unsigned int getCurFlow(void)
+{
+    unsigned int re = 0;
+    
+    cli();
+    re = curFlow;
+    sti();
+    return re;
+}
+
+
+
+void pumpLoop(void)
+{
+    unsigned int actPresure = 0;    //实际压力采样值
+    int err = 0;
+    double ok = 0;
+    
+    initPumpPwm();     //初始化PWM
+    
+    while(1)
+    {
+        
+        if(startFlag)
+        {
+            actPresure = getPAdc();    //获得压力值
+            
+            err = smpPresure - actPresure;   //获得采样差值
+            
+            
+            if(actPresure >= 4095 && dutyVal > 7000)
+            {
+                ok = err*10.0;
+            }else if(actPresure >= 4095 && dutyVal > 5000) 
+            {
+                ok = err*5.0;     //仅使用P值
+            }else if(actPresure >= 4095 && dutyVal > 3500)
+            {
+                ok = err*0.2;
+            }else
+            {
+                ok = err*0.2;
+            }
+            
+            if(smpFlow <= 400)   //采样流量为400ml/min以下
+            {
+                if(ok > 100)
+                {
+                    ok = 100;
+                }else if(ok < -50)
+                {
+                    ok = -50;
+                }
+            }else if(smpFlow > 400)  //采样流量值为400ml/min以上
+            {
+                if(ok > 80)
+                {
+                    ok = 80;
+                }else if(ok < -800)
+                {
+                    ok = -800;
+                }
+            }
+            
+            dutyVal += ok;
+            
+            if(dutyVal > 8998)   //进行限值
+            {
+                dutyVal = 8998;
+            }
+            
+            if(dutyVal < 2)
+            {
+                dutyVal = 2;
+            }
+            
+            setPwm1Duty(dutyVal);
+        }
+        sleep_delay();
+    }
+}

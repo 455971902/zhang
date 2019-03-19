@@ -1,0 +1,50 @@
+
+
+#ifndef _ADC12_H_
+
+#define _ADC12_H_
+
+#define BUF_NUM  800       //采样一千个数据
+
+
+
+
+
+struct SMPDATA
+{
+    unsigned int pData;    //压力采样数据
+    
+    unsigned int iData;   //电流采样数据
+    
+    struct SMPDATA *next;    //指向下一个数据的指针
+    
+    //struct SMPDATA *prev;    //指向上一个数据的指针
+};
+    
+
+
+
+
+#define startAdc()  (ADC12CTL0 |= ADC12SC + ADC12ENC)    //启动采样宏
+
+#define checkCmpled()  (ADC12CTL1 & ADC12BUSY)   //测试采样是否完成宏
+
+
+int getBatLevel(void);  //获得电池电量级别
+
+
+void adcTask(void);    //adc采样任务
+
+
+void initBuf(void);    //初始化数据缓冲区函数，在每次启动采样时调用
+
+void initAdc(void);    // 初始化AD采样函数
+
+
+unsigned long getPAdc(void); //获得压力采样值,未经过小数运算
+
+unsigned long getIAdc(void); //获得电流采样值，多个值的总和，未经小数运算
+
+
+
+#endif

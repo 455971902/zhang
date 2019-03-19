@@ -1,0 +1,398 @@
+
+
+
+                    EXTERN curTask    //引入当前任务变量
+                    EXTERN schdule
+
+
+                    PUBLIC  osStartSmallPort
+                    PUBLIC  osStartMediumPort
+                    PUBLIC  osStartLargePort
+                    
+                    
+                    PUBLIC  swCtxSmallPort
+                    PUBLIC  swCtxMediumPort
+                    PUBLIC  swCtxLargePort
+                    
+                    
+                    PUBLIC  intIsrSmallPort
+                    PUBLIC  intIsrMediumPort
+                    PUBLIC  intIsrLargePort
+                    
+                    RSEG CODE
+                    
+
+/*
+    osStartPort
+*/
+osStartSmallPort:
+                MOVX.W  0(R12),SP
+                POPX.A R15
+                POPX.A R14
+                POPX.A R13
+                POPX.A R12
+                POPX.A R11
+                POPX.A R10
+                POPX.A R9
+                POPX.A R8
+                POPX.A R7
+                POPX.A R6
+                POPX.A R5
+                POPX.A R4
+                POPX.A SR
+                RETA
+                    
+
+osStartMediumPort:
+                MOVX.W  0(R12),SP
+                POPX.A R15
+                POPX.A R14
+                POPX.A R13
+                POPX.A R12
+                POPX.A R11
+                POPX.A R10
+                POPX.A R9
+                POPX.A R8
+                POPX.A R7
+                POPX.A R6
+                POPX.A R5
+                POPX.A R4
+                POPX.A SR
+                RETA
+
+osStartLargePort:
+                MOVX.A  0(R12),SP
+                POPX.A R15
+                POPX.A R14
+                POPX.A R13
+                POPX.A R12
+                POPX.A R11
+                POPX.A R10
+                POPX.A R9
+                POPX.A R8
+                POPX.A R7
+                POPX.A R6
+                POPX.A R5
+                POPX.A R4
+                POPX.A SR
+                RETA              
+
+
+swCtxSmallPort:
+                PUSHX.A SR
+                PUSHX.A R4
+                PUSHX.A R5
+                PUSHX.A R6
+                PUSHX.A R7
+                PUSHX.A R8
+                PUSHX.A R9
+                PUSHX.A R10
+                PUSHX.A R11
+                PUSHX.A R12
+                PUSHX.A R13
+                PUSHX.A R14
+                PUSHX.A R15    //保存任务上下文
+                      
+                MOVX.W curTask,R4
+                MOVX.W SP,0(R4)     //保存堆栈寄存器
+                      
+                CALLA #schdule     //执行调度函数
+                            
+                MOVX.W curTask,R4
+                MOVX.W 0(R4),SP
+                      
+                POPX.A R15
+                POPX.A R14
+                POPX.A R13 
+                POPX.A R12
+                POPX.A R11
+                POPX.A R10
+                POPX.A R9
+                POPX.A R8
+                POPX.A R7
+                POPX.A R6
+                POPX.A R5
+                POPX.A R4
+                POPX.A SR
+                      
+                BIC.W #0xF0,SR    //清除休眠位
+                NOP
+                RETA 
+
+swCtxMediumPort:
+                PUSHX.A SR
+                PUSHX.A R4
+                PUSHX.A R5
+                PUSHX.A R6
+                PUSHX.A R7
+                PUSHX.A R8
+                PUSHX.A R9
+                PUSHX.A R10
+                PUSHX.A R11
+                PUSHX.A R12
+                PUSHX.A R13
+                PUSHX.A R14
+                PUSHX.A R15    //保存任务上下文
+                      
+                MOVX.W curTask,R4
+                MOVX.W SP,0(R4)     //保存堆栈寄存器
+                      
+                CALLA #schdule     //执行调度函数
+                            
+                MOVX.W curTask,R4
+                MOVX.W 0(R4),SP
+                      
+                POPX.A R15
+                POPX.A R14
+                POPX.A R13 
+                POPX.A R12
+                POPX.A R11
+                POPX.A R10
+                POPX.A R9
+                POPX.A R8
+                POPX.A R7
+                POPX.A R6
+                POPX.A R5
+                POPX.A R4
+                POPX.A SR
+                      
+                BIC.W #0xF0,SR    //清除休眠位
+                NOP
+                RETA
+                
+swCtxLargePort:
+                PUSHX.A SR
+                PUSHX.A R4
+                PUSHX.A R5
+                PUSHX.A R6
+                PUSHX.A R7
+                PUSHX.A R8
+                PUSHX.A R9
+                PUSHX.A R10
+                PUSHX.A R11
+                PUSHX.A R12
+                PUSHX.A R13
+                PUSHX.A R14
+                PUSHX.A R15    //保存任务上下文
+                      
+                MOVX.A curTask,R4
+                MOVX.A SP,0(R4)     //保存堆栈寄存器
+                      
+                CALLA #schdule     //执行调度函数
+                            
+                MOVX.A curTask,R4
+                MOVX.A 0(R4),SP
+                      
+                POPX.A R15
+                POPX.A R14
+                POPX.A R13 
+                POPX.A R12
+                POPX.A R11
+                POPX.A R10
+                POPX.A R9
+                POPX.A R8
+                POPX.A R7
+                POPX.A R6
+                POPX.A R5
+                POPX.A R4
+                POPX.A SR
+                      
+                BIC.W #0xF0,SR    //清除休眠位
+                NOP
+                RETA 
+                
+intIsrSmallPort:
+                      PUSHX.A SR
+                      PUSHX.A R4
+                      PUSHX.A R5
+                      PUSHX.A R6
+                      PUSHX.A R7
+                      PUSHX.A R8
+                      PUSHX.A R9
+                      PUSHX.A R10
+                      PUSHX.A R11
+                      PUSHX.A R12
+                      PUSHX.A R13
+                      PUSHX.A R14
+                      PUSHX.A R15    //保存任务上下文
+                      
+                      MOVX.W curTask,R4
+                      MOVX.W SP,0(R4)     //保存堆栈寄存器
+                      
+                      
+                      
+                      
+                      BIC.W 0xf0,R13
+                      PUSH.W R13
+                      PUSH.W R12
+                      POPX.A R15
+                      
+                      PUSHX.A R14
+                      
+                      BIS.W #0x08,SR     //使能中断
+                      NOP
+                      CALLA R15          //执行中断服务程序
+                      
+                      
+                      BIC.W #0x08,SR     //禁止中断
+                      
+                      NOP
+                      
+                      POPX.A R14
+                      DEC.B 0(R14)
+                      
+                      JNZ RESTORE_SMALL
+                      
+                      CALLA #schdule     //执行调度函数
+                      
+                      
+                      MOVX.W curTask,R4
+                      MOVX.W 0(R4),SP
+                      
+                      
+    RESTORE_SMALL:    POPX.A R15
+                      POPX.A R14
+                      POPX.A R13 
+                      POPX.A R12
+                      POPX.A R11
+                      POPX.A R10
+                      POPX.A R9
+                      POPX.A R8
+                      POPX.A R7
+                      POPX.A R6
+                      POPX.A R5
+                      POPX.A R4
+                      POPX.A SR
+                      
+                      BIC.W #0xF0,SR    //清除休眠位
+                      NOP
+                      
+                      RETA 
+                      
+intIsrMediumPort:
+                      PUSHX.A SR
+                      PUSHX.A R4
+                      PUSHX.A R5
+                      PUSHX.A R6
+                      PUSHX.A R7
+                      PUSHX.A R8
+                      PUSHX.A R9
+                      PUSHX.A R10
+                      PUSHX.A R11
+                      PUSHX.A R12
+                      PUSHX.A R13
+                      PUSHX.A R14
+                      PUSHX.A R15    //保存任务上下文
+                      
+                      MOVX.W curTask,R4
+                      MOVX.W SP,0(R4)     //保存堆栈寄存器
+                      
+                      
+                      
+                      
+                      BIC.W 0xf0,R13
+                      PUSH.W R13
+                      PUSH.W R12
+                      POPX.A R15
+                      
+                      PUSHX.A R14
+                      
+                      BIS.W #0x08,SR     //使能中断
+                      NOP
+                      CALLA R15          //执行中断服务程序
+                      
+                      
+                      BIC.W #0x08,SR     //禁止中断
+                      
+                      NOP
+                      
+                      POPX.A R14
+                      DEC.B 0(R14)
+                      
+                      JNZ RESTORE_MEDIUM
+                      
+                      CALLA #schdule     //执行调度函数
+                      
+                      
+                      MOVX.W curTask,R4
+                      MOVX.W 0(R4),SP
+                      
+                      
+   RESTORE_MEDIUM:    POPX.A R15
+                      POPX.A R14
+                      POPX.A R13 
+                      POPX.A R12
+                      POPX.A R11
+                      POPX.A R10
+                      POPX.A R9
+                      POPX.A R8
+                      POPX.A R7
+                      POPX.A R6
+                      POPX.A R5
+                      POPX.A R4
+                      POPX.A SR
+                      
+                      BIC.W #0xF0,SR    //清除休眠位
+                      NOP
+                      
+                      RETA 
+intIsrLargePort:
+                      PUSHX.A SR
+                      PUSHX.A R4
+                      PUSHX.A R5
+                      PUSHX.A R6
+                      PUSHX.A R7
+                      PUSHX.A R8
+                      PUSHX.A R9
+                      PUSHX.A R10
+                      PUSHX.A R11
+                      PUSHX.A R12
+                      PUSHX.A R13
+                      PUSHX.A R14
+                      PUSHX.A R15    //保存任务上下文
+                      
+                      MOVX.A curTask,R4
+                      MOVX.A SP,0(R4)     //保存堆栈寄存器
+                      
+                      PUSHX.A R13
+                      
+                      BIS.W #0x08,SR     //使能中断
+                      NOP
+                      CALLA R12          //执行中断服务程序
+                      
+                      BIC.W #0x08,SR     //禁止中断
+                      NOP
+                      
+                      POPX.A R13
+                      DEC.B 0(R13)
+                      
+                      JNZ RESTORE_LARGE
+                      
+                      CALLA #schdule     //执行调度函数
+                      
+                      
+                      MOVX.A curTask,R4
+                      MOVX.A 0(R4),SP
+                      
+    RESTORE_LARGE:    POPX.A R15
+                      POPX.A R14
+                      POPX.A R13 
+                      POPX.A R12
+                      POPX.A R11
+                      POPX.A R10
+                      POPX.A R9
+                      POPX.A R8
+                      POPX.A R7
+                      POPX.A R6
+                      POPX.A R5
+                      POPX.A R4
+                      POPX.A SR
+                      
+                      BIC.W #0xF0,SR    //清除休眠位
+                      NOP
+                      
+                      RETA 
+                      
+                      
+                      
+                      END
